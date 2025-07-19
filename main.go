@@ -6,6 +6,7 @@ import (
 	"github.com/rs/xid"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -45,7 +46,26 @@ func main() {
 	router.GET("/recipes", ListRecipeHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
+	router.GET("/recipess/search", SearchRecipeHandler)
 	router.Run()
+}
+
+func SearchRecipeHandler(c *gin.Context) {
+	tag := c.Query("tag")
+	var results []Recipe
+	for _, recipe := range recipes {
+		for _, rTag := range recipe.Tags {
+			if strings.EqualFold(rTag, tag) {
+				results = append(results, recipe)
+				break
+			}
+		}
+	}
+	if len(results) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No recipes found with the specified tag"})
+		return
+	}
+	c.JSON(http.StatusOK, results)
 }
 
 func DeleteRecipeHandler(c *gin.Context) {
