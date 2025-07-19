@@ -1,13 +1,30 @@
+// @title Recipes API
+// @version 1.0
+// @description This is a sample recipes API. You can find out more about
+// @description the API at https://github.com/PacktPublishing/Building-Distributed-Applications-in-Gin
+// @termsOfService https://github.com/PacktPublishing/Building-Distributed-Applications-in-Gin
+
+// @contact.name Mohamed Labouardy
+// @contact.email mohamed@labouardy.com
+// @contact.url https://labouardy.com
+
+// @host localhost:8080
+// @BasePath /
+// @schemes http
 package main
 
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	_ "recipes-api/docs"
 )
 
 type Recipe struct {
@@ -38,16 +55,6 @@ func init() {
 	// Pre-populate with some sample recipes
 	file, _ := ioutil.ReadFile("recipes.json")
 	_ = json.Unmarshal([]byte(file), &recipes)
-}
-
-func main() {
-	router := gin.Default()
-	router.POST("/recipes", NewRecipeHandler)
-	router.GET("/recipes", ListRecipeHandler)
-	router.PUT("/recipes/:id", UpdateRecipeHandler)
-	router.DELETE("/recipes/:id", DeleteRecipeHandler)
-	router.GET("/recipes/search", SearchRecipeHandler)
-	router.Run()
 }
 
 func SearchRecipeHandler(c *gin.Context) {
@@ -102,4 +109,15 @@ func UpdateRecipeHandler(c *gin.Context) {
 
 func ListRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, recipes)
+}
+
+func main() {
+	router := gin.Default()
+	router.POST("/recipes", NewRecipeHandler)
+	router.GET("/recipes", ListRecipeHandler)
+	router.PUT("/recipes/:id", UpdateRecipeHandler)
+	router.DELETE("/recipes/:id", DeleteRecipeHandler)
+	router.GET("/recipes/search", SearchRecipeHandler)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.Run()
 }
