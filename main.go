@@ -46,7 +46,7 @@ func main() {
 	router.GET("/recipes", ListRecipeHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
-	router.GET("/recipess/search", SearchRecipeHandler)
+	router.GET("/recipes/search", SearchRecipeHandler)
 	router.Run()
 }
 
