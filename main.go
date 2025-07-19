@@ -36,8 +36,22 @@ type Recipe struct {
 	PublishedAt  string   `json:"publishedAt"`
 }
 
+type Response struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
 var recipes []Recipe
 
+// @Summary Create a new recipe
+// @Description Create a new recipe with the provided details
+// @Accept json
+// @Produce json
+// @Param recipe body Recipe true "Recipe details"
+// @Success 200 {object} Recipe
+// @Failure 400 {object} Response "Error response"
+// @Router /recipes [post]
 func NewRecipeHandler(c *gin.Context) {
 	var recipe Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
@@ -57,6 +71,14 @@ func init() {
 	_ = json.Unmarshal([]byte(file), &recipes)
 }
 
+// @Summary Search recipes by tag
+// @Description Search for recipes that contain the specified tag
+// @Accept json
+// @Produce json
+// @Param tag query string true "Tag to search for"
+// @Success 200 {array} Recipe
+// @Failure 404 {object} Response "No recipes found"
+// @Router /recipes/search [get]
 func SearchRecipeHandler(c *gin.Context) {
 	tag := c.Query("tag")
 	var results []Recipe
@@ -75,6 +97,14 @@ func SearchRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
+// @Summary Delete a recipe
+// @Description Delete a recipe by its ID
+// @Accept json
+// @Produce json
+// @Param id path string true "Recipe ID"
+// @Success 200 {object} Response "Success message"
+// @Failure 404 {object} Response "Recipe not found"
+// @Router /recipes/{id} [delete]
 func DeleteRecipeHandler(c *gin.Context) {
 	id := c.Param("id")
 	for i, recipe := range recipes {
@@ -87,6 +117,16 @@ func DeleteRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "Recipe not found"})
 }
 
+// @Summary Update a recipe
+// @Description Update a recipe by its ID with the provided details
+// @Accept json
+// @Produce json
+// @Param id path string true "Recipe ID"
+// @Param recipe body Recipe true "Updated recipe details"
+// @Success 200 {object} Recipe
+// @Failure 400 {object} Response "Error response"
+// @Failure 404 {object} Response "Recipe not found"
+// @Router /recipes/{id} [put]
 func UpdateRecipeHandler(c *gin.Context) {
 	id := c.Param("id")
 	var updatedRecipe Recipe
@@ -107,6 +147,12 @@ func UpdateRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "Recipe not found"})
 }
 
+// @Summary List all recipes
+// @Description Retrieve a list of all recipes
+// @Accept json
+// @Produce json
+// @Success 200 {array} Recipe
+// @Router /recipes [get]
 func ListRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, recipes)
 }
