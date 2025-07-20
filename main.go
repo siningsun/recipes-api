@@ -179,6 +179,7 @@ func UpdateRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe updated"})
 }
 
+// ListRecipeHandler
 // @Summary List all recipes
 // @Description Retrieve a list of all recipes
 // @Accept json
