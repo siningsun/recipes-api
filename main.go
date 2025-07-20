@@ -15,7 +15,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -42,8 +44,19 @@ func init() {
 		readpref.Primary()); err != nil {
 		log.Fatal(err)
 	}
-	RecipeHandler = handler.NewRecipesHandler(ctx, client.Database("demo").Collection("recipes"))
 	log.Println("Connected to MongoDB")
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	if err := redisClient.Ping().Err(); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(redisClient.Ping())
+	RecipeHandler = handler.NewRecipesHandler(ctx,
+		client.Database("demo").Collection("recipes"),
+		redisClient)
 }
 
 func main() {
