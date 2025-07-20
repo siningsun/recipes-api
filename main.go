@@ -42,7 +42,7 @@ func init() {
 		readpref.Primary()); err != nil {
 		log.Fatal(err)
 	}
-	RecipeHandler = handler.NewRecipesHandler(ctx, client.Database("recipes").Collection("recipes"))
+	RecipeHandler = handler.NewRecipesHandler(ctx, client.Database("demo").Collection("recipes"))
 	log.Println("Connected to MongoDB")
 }
 
