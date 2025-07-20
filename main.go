@@ -26,7 +26,8 @@ import (
 	"log"
 	"os"
 	_ "recipes-api/docs"
-	handler "recipes-api/handler"
+	"recipes-api/handler"
+	"recipes-api/middleware"
 )
 
 type Response struct {
@@ -36,6 +37,7 @@ type Response struct {
 }
 
 var RecipeHandler *handler.RecipesHandler
+var AuthHandler *handler.AuthHandler
 
 func init() {
 	ctx := context.Background()
@@ -57,15 +59,25 @@ func init() {
 	RecipeHandler = handler.NewRecipesHandler(ctx,
 		client.Database("demo").Collection("recipes"),
 		redisClient)
+	AuthHandler = &handler.AuthHandler{}
 }
 
 func main() {
 	router := gin.Default()
-	router.POST("/recipes", RecipeHandler.NewRecipeHandler)
-	router.GET("/recipes", RecipeHandler.ListRecipeHandler)
-	router.PUT("/recipes/:id", RecipeHandler.UpdateRecipeHandler)
-	router.DELETE("/recipes/:id", RecipeHandler.DeleteRecipeHandler)
-	router.GET("/recipes/search", RecipeHandler.SearchRecipeHandler)
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	router.Run()
+	router.POST("/signin", AuthHandler.SignInHandler)
+
+	authorized := router.Group("/")
+	authorized.Use(middleware.AuthMiddleware())
+	{
+		authorized.POST("/recipes", RecipeHandler.NewRecipeHandler)
+		authorized.PUT("/recipes/:id", RecipeHandler.UpdateRecipeHandler)
+		authorized.DELETE("/recipes/:id", RecipeHandler.DeleteRecipeHandler)
+		authorized.GET("/recipes/search", RecipeHandler.SearchRecipeHandler)
+		authorized.GET("recipes", RecipeHandler.ListRecipeHandler)
+	}
+	err := router.Run()
+	if err != nil {
+		return
+	}
 }
