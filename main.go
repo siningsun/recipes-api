@@ -59,22 +59,25 @@ func init() {
 	RecipeHandler = handler.NewRecipesHandler(ctx,
 		client.Database("demo").Collection("recipes"),
 		redisClient)
-	AuthHandler = &handler.AuthHandler{}
+	AuthHandler = handler.NewAuthHandler(ctx,
+		client.Database("demo").Collection("users"))
 }
 
 func main() {
 	router := gin.Default()
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.POST("/signin", AuthHandler.SignInHandler)
+	router.POST("/refresh", AuthHandler.RefreshHandler)
 
 	authorized := router.Group("/")
 	authorized.Use(middleware.AuthMiddleware())
+
 	{
 		authorized.POST("/recipes", RecipeHandler.NewRecipeHandler)
 		authorized.PUT("/recipes/:id", RecipeHandler.UpdateRecipeHandler)
 		authorized.DELETE("/recipes/:id", RecipeHandler.DeleteRecipeHandler)
 		authorized.GET("/recipes/search", RecipeHandler.SearchRecipeHandler)
-		authorized.GET("recipes", RecipeHandler.ListRecipeHandler)
+		authorized.GET("/recipes", RecipeHandler.ListRecipeHandler)
 	}
 	err := router.Run()
 	if err != nil {

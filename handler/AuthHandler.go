@@ -1,15 +1,30 @@
 package handler
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/net/context"
 	"net/http"
 	"os"
 	"recipes-api/model"
 	"time"
 )
 
-type AuthHandler struct{}
+type AuthHandler struct {
+	collection *mongo.Collection
+	ctx        context.Context
+}
+
+func NewAuthHandler(ctx context.Context, collection *mongo.Collection) *AuthHandler {
+	return &AuthHandler{
+		collection: collection,
+		ctx:        ctx,
+	}
+}
 
 func (handler *AuthHandler) SignInHandler(c *gin.Context) {
 	var user model.User
@@ -19,8 +34,15 @@ func (handler *AuthHandler) SignInHandler(c *gin.Context) {
 		})
 		return
 	}
-	if user.Username != "admin" || user.Password != "password" {
+	hash := sha256.Sum256([]byte(user.Password))
+	hashedPassword := hex.EncodeToString(hash[:])
+	cur := handler.collection.FindOne(handler.ctx, bson.M{
+		"username": user.Username,
+		"password": hashedPassword,
+	})
+	if cur.Err() != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		return
 	}
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &model.Claims{
@@ -34,6 +56,41 @@ func (handler *AuthHandler) SignInHandler(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError,
 			gin.H{"error": err.Error()})
+		return
+	}
+	jwtOutput := model.JWTOutput{
+		Token:   tokenString,
+		Expires: expirationTime,
+	}
+	c.JSON(http.StatusOK, jwtOutput)
+}
+
+func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
+	tokenValue := c.GetHeader("Authorization")
+	claims := &model.Claims{}
+	tkn, err := jwt.ParseWithClaims(tokenValue, claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	if tkn == nil || !tkn.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+	//refresh token
+	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Second {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token is not expired yet"})
+		return
+	}
+	expirationTime := time.Now().Add(5 * time.Hour)
+	claims.ExpiresAt = expirationTime.Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(os.Getenv("JWT_SECRET"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	jwtOutput := model.JWTOutput{
