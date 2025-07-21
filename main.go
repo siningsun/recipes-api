@@ -16,6 +16,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gin-contrib/sessions"
+	redisStore "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	swaggerFiles "github.com/swaggo/files"
@@ -65,10 +67,12 @@ func init() {
 
 func main() {
 	router := gin.Default()
+	store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", "", []byte("secret"))
+	router.Use(sessions.Sessions("recipes_api", store))
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.POST("/signin", AuthHandler.SignInHandler)
 	router.POST("/refresh", AuthHandler.RefreshHandler)
-
+	router.POST("/signout", AuthHandler.SignOutHandler)
 	authorized := router.Group("/")
 	authorized.Use(middleware.AuthMiddleware())
 
